@@ -1,13 +1,14 @@
 package simpledb.storage;
 
+import simpledb.common.Catalog;
 import simpledb.common.Database;
 import simpledb.common.DbException;
-import simpledb.common.Debug;
-import simpledb.common.Catalog;
 import simpledb.transaction.TransactionId;
 
-import java.util.*;
 import java.io.*;
+import java.util.Iterator;
+import java.util.NoSuchElementException;
+import java.util.stream.Stream;
 
 /**
  * Each instance of HeapPage stores data for one page of HeapFiles and 
@@ -73,19 +74,23 @@ public class HeapPage implements Page {
     */
     private int getNumTuples() {        
         // some code goes here
-        return 0;
 
+        // floor((BufferPool.getPageSize() * 8 ) / (tuple size * 8 + 1))
+        int pageBits = BufferPool.getPageSize() * 8;
+        // size + 1bit header
+        int oneTupleSize = td.getSize() * 8 + 1;
+        // 向下取整
+        return pageBits / oneTupleSize;
     }
 
     /**
      * Computes the number of bytes in the header of a page in a HeapFile with each tuple occupying tupleSize bytes
      * @return the number of bytes in the header of a page in a HeapFile with each tuple occupying tupleSize bytes
      */
-    private int getHeaderSize() {        
-        
+    private int getHeaderSize() {
         // some code goes here
-        return 0;
-                 
+        // 每个 tuple 需要一个 bit，所以需要多少个 byte 除以 8 向上取整
+        return (int) Math.ceil((double) getNumTuples() / 8);
     }
     
     /** Return a view of this page before it was modified
@@ -117,8 +122,8 @@ public class HeapPage implements Page {
      * @return the PageId associated with this page.
      */
     public HeapPageId getId() {
-    // some code goes here
-    throw new UnsupportedOperationException("implement this");
+        // some code goes here
+        return pid;
     }
 
     /**
@@ -296,7 +301,7 @@ public class HeapPage implements Page {
      */
     public boolean isSlotUsed(int i) {
         // some code goes here
-        return false;
+        return (header[i / 8] >> (i % 8) & 1) == 1;
     }
 
     /**
@@ -313,7 +318,7 @@ public class HeapPage implements Page {
      */
     public Iterator<Tuple> iterator() {
         // some code goes here
-        return null;
+        return Stream.of(tuples).iterator();
     }
 
 }
