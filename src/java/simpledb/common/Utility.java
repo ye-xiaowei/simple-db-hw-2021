@@ -3,6 +3,7 @@ package simpledb.common;
 import simpledb.storage.*;
 
 import java.io.*;
+import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
 
@@ -13,8 +14,7 @@ public class Utility {
      */
     public static Type[] getTypes(int len) {
         Type[] types = new Type[len];
-        for (int i = 0; i < len; ++i)
-            types[i] = Type.INT_TYPE;
+        Arrays.fill(types, Type.INT_TYPE);
         return types;
     }
 
