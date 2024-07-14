@@ -10,8 +10,12 @@ import java.util.stream.Stream;
  * TupleDesc describes the schema of a tuple.
  */
 public class TupleDesc implements Serializable {
+    private static final long serialVersionUID = 1L;
+
     private final TDItem[] items;
     private final int size;
+
+    private String aliasName = null;
 
     /**
      * A help class to facilitate organizing the information of each field
@@ -65,8 +69,6 @@ public class TupleDesc implements Serializable {
         return Stream.of(items).iterator() ;
     }
 
-    private static final long serialVersionUID = 1L;
-
     /**
      * Create a new TupleDesc with typeAr.length fields with fields of the
      * specified types, with associated named fields.
@@ -114,6 +116,12 @@ public class TupleDesc implements Serializable {
         this.size = size;
     }
 
+    public TupleDesc(TupleDesc tupleDesc, String alias) {
+        this.aliasName = alias;
+        this.size = tupleDesc.size;
+        this.items = tupleDesc.items;
+    }
+
     /**
      * @return the number of fields in this TupleDesc
      */
@@ -134,6 +142,9 @@ public class TupleDesc implements Serializable {
     public String getFieldName(int i) throws NoSuchElementException {
         // some code goes here
         assert i >= 0 && i < items.length;
+        if (aliasName != null) {
+            return aliasName + "." + items[i].fieldName;
+        }
         return items[i].fieldName;
     }
 

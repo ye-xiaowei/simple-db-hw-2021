@@ -94,6 +94,10 @@ public class BufferPool {
     public synchronized Page getPage(TransactionId tid, PageId pid, Permissions perm)
         throws TransactionAbortedException, DbException {
         // some code goes here
+        PageInfo info = pageMap.get(pid);
+        if (info != null) {
+            return info.page;
+        }
         if (pageMap.size() >= numPages) {
             for (Map.Entry<PageId, PageInfo> entry : pageMap.entrySet()) {
                 if (entry.getValue().perm.isEmpty()) {
