@@ -1,11 +1,19 @@
 package simpledb.storage;
 
+import simpledb.common.Catalog;
+import simpledb.common.Database;
 import simpledb.common.DbException;
 import simpledb.common.Permissions;
 import simpledb.transaction.TransactionAbortedException;
 import simpledb.transaction.TransactionId;
 
 import java.io.IOException;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * BufferPool manages the reading and writing of pages into memory from
@@ -30,6 +38,18 @@ public class BufferPool {
     public static final int DEFAULT_PAGES = 50;
 
     private final int numPages;
+
+    private Map<PageId, PageInfo> pageMap = new ConcurrentHashMap<>();
+
+    private static class PageInfo {
+        Page page;
+        Set<Permissions> perm = new HashSet<>();
+        Lock lock = new ReentrantLock();
+
+        public PageInfo(Page page) {
+            this.page = page;
+        }
+    }
 
     /**
      * Creates a BufferPool that caches up to numPages pages.
@@ -71,11 +91,24 @@ public class BufferPool {
      * @param pid the ID of the requested page
      * @param perm the requested permissions on the page
      */
-    public  Page getPage(TransactionId tid, PageId pid, Permissions perm)
+    public synchronized Page getPage(TransactionId tid, PageId pid, Permissions perm)
         throws TransactionAbortedException, DbException {
         // some code goes here
-
-        return null;
+        if (pageMap.size() >= numPages) {
+            for (Map.Entry<PageId, PageInfo> entry : pageMap.entrySet()) {
+                if (entry.getValue().perm.isEmpty()) {
+                    pageMap.remove(entry.getKey());
+                    break;
+                }
+            }
+        }
+        Catalog catalog = Database.getCatalog();
+        DbFile dbFile = catalog.getDatabaseFile(pid.getTableId());
+        Page page = dbFile.readPage(pid);
+        PageInfo pageInfo = new PageInfo(page);
+        pageInfo.perm.add(perm);
+        pageMap.put(pid, pageInfo);
+        return page;
     }
 
     /**
