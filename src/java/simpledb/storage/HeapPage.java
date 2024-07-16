@@ -349,7 +349,7 @@ public class HeapPage implements Page {
             Tuple tuple = currentTuple;
             currentTuple = null;
             currentTupleNo++;
-            while (currentTupleNo < numSlots) {
+            while (currentTupleNo <= numSlots) {
                 if (isSlotUsed(currentTupleNo)) {
                     currentTuple = tuples[currentTupleNo];
                     break;
