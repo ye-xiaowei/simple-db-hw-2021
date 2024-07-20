@@ -9,6 +9,7 @@ import simpledb.transaction.TransactionId;
 
 import java.io.IOException;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -39,7 +40,7 @@ public class BufferPool {
 
     private final int numPages;
 
-    private Map<PageId, PageInfo> pageMap = new ConcurrentHashMap<>();
+    private final Map<PageId, PageInfo> pageMap = new ConcurrentHashMap<>();
 
     private static class PageInfo {
         Page page;
@@ -177,6 +178,14 @@ public class BufferPool {
         throws DbException, IOException, TransactionAbortedException {
         // some code goes here
         // not necessary for lab1
+        DbFile dbFile = Database.getCatalog().getDatabaseFile(tableId);
+        t.setRecordId(new RecordId(new HeapPageId(tableId, 0), 0));
+        List<Page> pages = dbFile.insertTuple(tid, t);
+        for (Page page : pages) {
+            PageId pageId = page.getId();
+            pageMap.put(pageId, new PageInfo(page));
+            page.markDirty(true, tid);
+        }
     }
 
     /**
@@ -196,6 +205,8 @@ public class BufferPool {
         throws DbException, IOException, TransactionAbortedException {
         // some code goes here
         // not necessary for lab1
+        DbFile dbFile = Database.getCatalog().getDatabaseFile(t.getRecordId().getPageId().getTableId());
+        dbFile.deleteTuple(tid, t);
     }
 
     /**
