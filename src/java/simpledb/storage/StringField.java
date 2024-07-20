@@ -115,4 +115,9 @@ public class StringField implements Field {
 
 		return Type.STRING_TYPE;
 	}
+
+	@Override
+	public Object getV() {
+		return value;
+	}
 }

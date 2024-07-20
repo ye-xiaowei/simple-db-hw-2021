@@ -82,4 +82,9 @@ public class IntField implements Field {
     public Type getType() {
         return Type.INT_TYPE;
     }
+
+    @Override
+    public Object getV() {
+        return value;
+    }
 }

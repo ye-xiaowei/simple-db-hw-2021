@@ -60,7 +60,7 @@ public abstract class Operator implements OpIterator {
     }
 
     private Tuple next = null;
-    private boolean open = false;
+    protected boolean open = false;
     private int estimatedCardinality = 0;
 
     public void open() throws DbException, TransactionAbortedException {

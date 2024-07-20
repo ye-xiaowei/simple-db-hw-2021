@@ -30,6 +30,8 @@ public interface Field extends Serializable{
      * @return type of this field
      */
     Type getType();
+
+    Object getV();
     
     /**
      * Hash code.
