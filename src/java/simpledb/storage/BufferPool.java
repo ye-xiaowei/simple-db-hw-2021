@@ -178,13 +178,14 @@ public class BufferPool {
         throws DbException, IOException, TransactionAbortedException {
         // some code goes here
         // not necessary for lab1
-        DbFile dbFile = Database.getCatalog().getDatabaseFile(tableId);
         t.setRecordId(new RecordId(new HeapPageId(tableId, 0), 0));
+
+        DbFile dbFile = Database.getCatalog().getDatabaseFile(tableId);
         List<Page> pages = dbFile.insertTuple(tid, t);
+
         for (Page page : pages) {
-            PageId pageId = page.getId();
-            pageMap.put(pageId, new PageInfo(page));
             page.markDirty(true, tid);
+            dbFile.writePage(page);
         }
     }
 

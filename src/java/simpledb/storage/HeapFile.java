@@ -12,6 +12,7 @@ import java.io.RandomAccessFile;
 import java.util.Iterator;
 import java.util.List;
 import java.util.NoSuchElementException;
+import java.util.Objects;
 
 /**
  * HeapFile is an implementation of a DbFile that stores a collection of tuples
@@ -80,6 +81,9 @@ public class HeapFile implements DbFile {
     // see DbFile.java for javadocs
     public Page readPage(PageId pid) {
         // some code goes here
+        if (!Objects.equals(getId(), pid.getTableId())) {
+            throw new IllegalArgumentException("Page does not exist in this file.");
+        }
         try (RandomAccessFile read = new RandomAccessFile(file, "r")) {
             int pageSize = BufferPool.getPageSize();
             byte[] data = new byte[pageSize];
@@ -96,6 +100,17 @@ public class HeapFile implements DbFile {
     public void writePage(Page page) throws IOException {
         // some code goes here
         // not necessary for lab1
+        if (!Objects.equals(getId(), page.getId().getTableId())) {
+            throw new IllegalArgumentException("Page does not exist in this file.");
+        }
+        try (RandomAccessFile read = new RandomAccessFile(file, "rw")) {
+            int pageSize = BufferPool.getPageSize();
+            int off = page.getId().getPageNumber() * pageSize;
+            read.seek(off);
+            read.write(page.getPageData());
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
     }
 
     /**
@@ -127,7 +142,7 @@ public class HeapFile implements DbFile {
             }
             page = getPageFromPool(tid, new HeapPageId(tableId, pgNo++), Permissions.READ_WRITE);
         }
-        page.markDirty(true, tid);
+        writePage(page);
         return List.of(page);
     }
 
