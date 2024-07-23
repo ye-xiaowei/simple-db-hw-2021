@@ -8,11 +8,7 @@ import simpledb.transaction.TransactionAbortedException;
 import simpledb.transaction.TransactionId;
 
 import java.io.IOException;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.*;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -40,7 +36,7 @@ public class BufferPool {
 
     private final int numPages;
 
-    private final Map<PageId, PageInfo> pageMap = new ConcurrentHashMap<>();
+    private final Map<PageId, PageInfo> pageMap;
 
     private static class PageInfo {
         Page page;
@@ -61,6 +57,7 @@ public class BufferPool {
         // some code goes here
         assert numPages > 0;
         this.numPages = numPages;
+        pageMap = new LRUCache(numPages);
     }
     
     public static int getPageSize() {
@@ -218,7 +215,9 @@ public class BufferPool {
     public synchronized void flushAllPages() throws IOException {
         // some code goes here
         // not necessary for lab1
-
+        for (Map.Entry<PageId, PageInfo> entry : pageMap.entrySet()) {
+            flushPage(entry.getKey());
+        }
     }
 
     /** Remove the specific page id from the buffer pool.
@@ -232,6 +231,7 @@ public class BufferPool {
     public synchronized void discardPage(PageId pid) {
         // some code goes here
         // not necessary for lab1
+        pageMap.remove(pid);
     }
 
     /**
@@ -241,6 +241,12 @@ public class BufferPool {
     private synchronized  void flushPage(PageId pid) throws IOException {
         // some code goes here
         // not necessary for lab1
+        PageInfo pageInfo = pageMap.get(pid);
+        if (pageInfo.page.isDirty() != null) {
+            DbFile dbFile = Database.getCatalog().getDatabaseFile(pid.getTableId());
+            dbFile.writePage(pageInfo.page);
+            pageInfo.page.markDirty(false, null);
+        }
     }
 
     /** Write all pages of the specified transaction to disk.
@@ -254,9 +260,42 @@ public class BufferPool {
      * Discards a page from the buffer pool.
      * Flushes the page to disk to ensure dirty pages are updated on disk.
      */
-    private synchronized  void evictPage() throws DbException {
+    private synchronized  void evictPage(Page page) throws DbException {
         // some code goes here
         // not necessary for lab1
+        DbFile dbFile = Database.getCatalog().getDatabaseFile(page.getId().getTableId());
+        try {
+            dbFile.writePage(page);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+        page.markDirty(false, null);
+        pageMap.remove(page.getId());
     }
 
+    private class LRUCache extends LinkedHashMap<PageId, PageInfo> {
+        private final int cacheSize;
+
+        public LRUCache(int cacheSize) {
+            // Initialize the LinkedHashMap with accessOrder set to true.
+            super(cacheSize, 0.75f, true);
+            this.cacheSize = cacheSize;
+        }
+
+        @Override
+        protected boolean removeEldestEntry(Map.Entry<PageId, PageInfo> eldest) {
+            if (size() > cacheSize) {
+                if (eldest.getValue().page.isDirty() != null) {
+                    try {
+                        flushPage(eldest.getKey());
+                    } catch (IOException e) {
+                        throw new RuntimeException(e);
+                    }
+                }
+                return true;
+            }
+            return false;
+        }
+
+    }
 }
