@@ -134,6 +134,7 @@ public class SeqScan implements OpIterator {
     public void close() {
         // some code goes here
         iterator.close();
+        this.iterator = Database.getCatalog().getDatabaseFile(tableid).iterator(tid);
         isOpen = false;
     }
 
