@@ -1,15 +1,9 @@
 package simpledb;
 
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
-import org.junit.Assert;
-
 import simpledb.common.Database;
-import simpledb.common.DbException;
 import simpledb.execution.Predicate;
 import simpledb.optimizer.TableStats;
 import simpledb.storage.Field;
@@ -17,7 +11,10 @@ import simpledb.storage.HeapFile;
 import simpledb.storage.IntField;
 import simpledb.systemtest.SimpleDbTestBase;
 import simpledb.systemtest.SystemTestUtil;
-import simpledb.transaction.TransactionAbortedException;
+
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 
 public class TableStatsTest extends SimpleDbTestBase {
 	public static final int IO_COST = 71;
@@ -49,6 +46,7 @@ public class TableStatsTest extends SimpleDbTestBase {
 		}
 		return ret;
 	}
+
 	/**
 	 * Verify the cost estimates of scanning various numbers of pages from a HeapFile
 	 * This test checks that the estimateScanCost is: 
