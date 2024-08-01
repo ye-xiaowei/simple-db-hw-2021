@@ -119,7 +119,16 @@ public class TupleDesc implements Serializable {
     public TupleDesc(TupleDesc tupleDesc, String alias) {
         this.aliasName = alias;
         this.size = tupleDesc.size;
-        this.items = tupleDesc.items;
+        this.items = new TDItem[tupleDesc.numFields()];
+        for (int i = 0; i < items.length; i++) {
+            String name;
+            if (alias == null) {
+                name = "null." + (tupleDesc.getFieldName(i) == null ? "null" : tupleDesc.getFieldName(i));
+            } else {
+                name = alias + "." + (tupleDesc.getFieldName(i) == null ? "null" : tupleDesc.getFieldName(i));
+            }
+            items[i] = new TDItem(tupleDesc.items[i].fieldType, name);
+        }
     }
 
     /**
@@ -142,9 +151,6 @@ public class TupleDesc implements Serializable {
     public String getFieldName(int i) throws NoSuchElementException {
         // some code goes here
         assert i >= 0 && i < items.length;
-        if (aliasName != null) {
-            return aliasName + "." + items[i].fieldName;
-        }
         return items[i].fieldName;
     }
 

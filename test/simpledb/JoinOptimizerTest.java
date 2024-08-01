@@ -1,15 +1,9 @@
 package simpledb;
 
-import java.io.File;
-import java.io.IOException;
-import java.util.*;
-
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
-
 import simpledb.common.Database;
-import simpledb.common.DbException;
 import simpledb.common.Utility;
 import simpledb.execution.Predicate;
 import simpledb.optimizer.JoinOptimizer;
@@ -20,8 +14,11 @@ import simpledb.storage.HeapFile;
 import simpledb.storage.HeapFileEncoder;
 import simpledb.systemtest.SimpleDbTestBase;
 import simpledb.systemtest.SystemTestUtil;
-import simpledb.transaction.TransactionAbortedException;
 import simpledb.transaction.TransactionId;
+
+import java.io.File;
+import java.io.IOException;
+import java.util.*;
 
 public class JoinOptimizerTest extends SimpleDbTestBase {
 
@@ -599,8 +596,7 @@ public class JoinOptimizerTest extends SimpleDbTestBase {
         filterSelectivities.put("i", 1.0);
 
         // Add the nodes to a collection for a query plan
-        nodes.add(new LogicalJoinNode("a", "b", "c1", "c1",
-                Predicate.Op.LESS_THAN));
+        nodes.add(new LogicalJoinNode("a", "b", "c1", "c1", Predicate.Op.LESS_THAN));
         nodes.add(new LogicalJoinNode("b", "c", "c0", "c0", Predicate.Op.EQUALS));
         nodes.add(new LogicalJoinNode("c", "d", "c1", "c1", Predicate.Op.EQUALS));
         nodes.add(new LogicalJoinNode("d", "e", "c0", "c0", Predicate.Op.EQUALS));

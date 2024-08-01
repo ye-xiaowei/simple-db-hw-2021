@@ -300,6 +300,8 @@ public class LogicalPlan {
                  ss = new SeqScan(t, Database.getCatalog().getDatabaseFile(table.t).getId(), table.alias);
             } catch (NoSuchElementException e) {
                 throw new ParsingException("Unknown table " + table.t);
+            } catch (Throwable e) {
+                e.printStackTrace();
             }
             
             subplanMap.put(table.alias,ss);

@@ -165,23 +165,28 @@ public class JoinOptimizer {
                                                    Map<String, TableStats> stats,
                                                    Map<String, Integer> tableAliasToId) {
         // some code goes here
+        int card;
+        if (!t1pkey && !t2pkey) {
+            card = Math.max(card1, card2);
+        } else if (!t1pkey) {
+            card = card2;
+        } else if (!t2pkey) {
+            card = card1;
+        } else {
+            card = Math.min(card1, card2);
+        }
         switch (joinOp) {
             case EQUALS: {
-                if (!t1pkey && !t2pkey) {
-                    return Math.max(card1, card2);
-                } else if (!t1pkey) {
-                    return card2;
-                } else if (!t2pkey) {
-                    return card1;
-                } else {
-                    return Math.max(card1, card2);
-                }
+                break;
             }
             case NOT_EQUALS: {
-                return card1 * card2;
+                card = card1 * card2 - card;
+                break;
+            } default: {
+                card = card1 * card2 / 3;
             }
         }
-        return (int) Math.max(Math.max(card1, card2), card1 * card2 * 0.3);
+        return Math.max(1, card);
     }
 
     /**
@@ -214,6 +219,31 @@ public class JoinOptimizer {
 
     }
 
+    public <T> Set<Set<T>> enumerateSubsets0(List<T> v, int size) {
+        Set<Set<T>> res = new HashSet<>();
+        dfs(res, new ArrayDeque<>(), v, size, 0);
+        return res;
+    }
+
+    public <T> void dfs(Set<Set<T>> res, Deque<T> path, List<T> v, int size, int i) {
+        if (path.size() == size) {
+            res.add(new HashSet<>(path));
+            return;
+        }
+        for (int j = i; j <= v.size() + path.size() - size; j++) {
+            path.addLast(v.get(j));
+            dfs(res, path, v, size, j + 1);
+            path.removeLast();
+        }
+    }
+
+    public static void main(String[] args) {
+        System.out.println(new JoinOptimizer(null, null).enumerateSubsets0(
+                List.of(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 13, 14, 15, 16, 17),
+                6
+        ));
+    }
+
     /**
      * Compute a logical, reasonably efficient join on the specified tables. See
      * PS4 for hints on how this should be implemented.
@@ -234,10 +264,38 @@ public class JoinOptimizer {
             Map<String, TableStats> stats,
             Map<String, Double> filterSelectivities, boolean explain)
             throws ParsingException {
-
         // some code goes here
         //Replace the following
-        return joins;
+        // a join b join c join d... 我们要返回一个最佳的join策略
+        PlanCache planCache = new PlanCache();
+        CostCard bestCostCard = null;
+        for (int i = 1; i <= joins.size(); i++) {
+            // 动态规划，从下层开始计算，并将局部最优的结果放到了 planCache 中
+            // 局部最优指的是某个n大小的set，某个n大小的set的排列方式都能从n-1 + 1 推算
+            // 而 n - 1 已经计算过其最优
+            Set<Set<LogicalJoinNode>> sets = enumerateSubsets0(joins, i);
+            for (Set<LogicalJoinNode> subPlan : sets) {
+                double bestCost = Double.MAX_VALUE;
+                // 选择一个去 join 其他，看看开销哪个更小
+                for (LogicalJoinNode removeNode : subPlan) {
+                    CostCard cc = computeCostAndCardOfSubplan(stats, filterSelectivities, removeNode,
+                            subPlan, bestCost, planCache);
+                    if (cc != null) {
+                        bestCost = cc.cost;
+                        bestCostCard = cc;
+                    }
+                }
+                // 保存
+                if (bestCost != Double.MAX_VALUE) {
+                    planCache.addPlan(subPlan, bestCost, bestCostCard.card, bestCostCard.plan);
+                }
+            }
+        }
+        List<LogicalJoinNode> res = bestCostCard != null ? bestCostCard.plan : joins;
+        if (explain) {
+            printJoins(res, planCache, stats, filterSelectivities);
+        }
+        return res;
     }
 
     // ===================== Private Methods =================================

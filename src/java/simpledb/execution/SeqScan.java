@@ -51,7 +51,8 @@ public class SeqScan implements OpIterator {
     private void initSource(int tableId, String tableAlias) {
         this.tableid = tableId;
         this.tableAlias = tableAlias;
-        this.tupleDesc = Database.getCatalog().getTupleDesc(tableId);
+        TupleDesc desc = Database.getCatalog().getTupleDesc(tableId);
+        tupleDesc = new TupleDesc(desc, tableAlias);
         this.tableName = Database.getCatalog().getTableName(tableId);
         this.iterator = Database.getCatalog().getDatabaseFile(tableId).iterator(tid);
         this.isOpen = false;
@@ -76,7 +77,7 @@ public class SeqScan implements OpIterator {
     /**
      * Reset the tableid, and tableAlias of this operator.
      *
-     * @param tableid    the table to scan.
+     * @param tableId    the table to scan.
      * @param tableAlias the alias of this table (needed by the parser); the returned
      *                   tupleDesc should have fields with name tableAlias.fieldName
      *                   (note: this class is not responsible for handling a case where
@@ -111,7 +112,7 @@ public class SeqScan implements OpIterator {
      */
     public TupleDesc getTupleDesc() {
         // some code goes here
-        return new TupleDesc(tupleDesc, tableAlias);
+        return tupleDesc;
     }
 
     public boolean hasNext() throws TransactionAbortedException, DbException {
