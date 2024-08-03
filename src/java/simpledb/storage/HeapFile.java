@@ -126,22 +126,20 @@ public class HeapFile implements DbFile {
             throws DbException, IOException, TransactionAbortedException {
         // some code goes here
         // not necessary for lab1
-        PageId pageId = t.getRecordId().getPageId();
-        int tableId = pageId.getTableId();
-        HeapPage page = getPageFromPool(tid, pageId, Permissions.READ_WRITE);
-        // 尝试 t 中的 pageId，不行的话随便塞一个
-        int pgNo = 0;
-        while (true) {
-            try {
+        // 找现在的page看看有没有空位
+        int numPages = numPages();
+        for (int i = 0; i < numPages; i++) {
+            HeapPage page = getPageFromPool(tid, new HeapPageId(getId(), i), Permissions.READ_WRITE);
+            if (page.getNumEmptySlots() != 0) {
                 page.insertTuple(t);
-                break;
-            } catch (DbException ignore) {
+                page.markDirty(true, tid);
+                return List.of(page);
             }
-            if (pgNo == pageId.getPageNumber()) {
-                pgNo++;
-            }
-            page = getPageFromPool(tid, new HeapPageId(tableId, pgNo++), Permissions.READ_WRITE);
         }
+        // 没有空位只能，重新写一页了
+        HeapPage page = getPageFromPool(tid, new HeapPageId(getId(), numPages), Permissions.READ_WRITE);
+        page.insertTuple(t);
+        page.markDirty(true, tid);
         writePage(page);
         return List.of(page);
     }
