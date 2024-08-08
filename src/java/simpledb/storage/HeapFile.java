@@ -137,9 +137,11 @@ public class HeapFile implements DbFile {
             }
         }
         // 没有空位只能，重新写一页了
-        HeapPage page = getPageFromPool(tid, new HeapPageId(getId(), numPages), Permissions.READ_WRITE);
+        HeapPageId pageId = new HeapPageId(getId(), numPages);
+        HeapPage page = getPageFromPool(tid, pageId, Permissions.READ_WRITE);
         page.insertTuple(t);
         page.markDirty(true, tid);
+        t.setRecordId(new RecordId(pageId, 0));
         writePage(page);
         return List.of(page);
     }

@@ -199,7 +199,6 @@ public class BufferPool {
             throws DbException, IOException, TransactionAbortedException {
         // some code goes here
         // not necessary for lab1
-        t.setRecordId(new RecordId(new HeapPageId(tableId, 0), 0));
         DbFile dbFile = Database.getCatalog().getDatabaseFile(tableId);
         List<Page> pages = dbFile.insertTuple(tid, t);
         for (Page page : pages) {
