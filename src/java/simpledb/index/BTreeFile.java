@@ -270,7 +270,7 @@ public class BTreeFile implements DbFile {
         BTreePageId rightSiblingId = page.getRightSiblingId();
         if (rightSiblingId != null) {
             BTreeLeafPage p = (BTreeLeafPage) getPage(tid, dirtypages, rightSiblingId, Permissions.READ_WRITE);
-            p.setLeftSiblingId(rightSiblingId);
+            p.setLeftSiblingId(rightPage.getId());
         }
         page.setRightSiblingId(rightPage.getId());
         rightPage.setLeftSiblingId(page.getId());
