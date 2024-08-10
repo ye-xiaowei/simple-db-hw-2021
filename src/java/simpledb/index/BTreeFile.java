@@ -250,7 +250,45 @@ public class BTreeFile implements DbFile {
         // the new entry.  getParentWithEmtpySlots() will be useful here.  Don't forget to update
         // the sibling pointers of all the affected leaf pages.  Return the page into which a
         // tuple with the given key field should be inserted.
-        return null;
+        // 1. 创建空页
+        BTreeLeafPage rightPage = (BTreeLeafPage) getEmptyPage(tid, dirtypages, BTreePageId.LEAF);
+        int numTuples = page.getNumTuples();
+        int moved = numTuples / 2;
+
+        // 2. 复制并删除元素
+        Iterator<Tuple> tupleIterator = page.reverseIterator();
+        while (tupleIterator.hasNext()) {
+            Tuple next = tupleIterator.next();
+            page.deleteTuple(next);
+            rightPage.insertTuple(next);
+            if (--moved == 0) {
+                break;
+            }
+        }
+
+        // 3. 更新兄弟索引
+        BTreePageId rightSiblingId = page.getRightSiblingId();
+        if (rightSiblingId != null) {
+            BTreeLeafPage p = (BTreeLeafPage) getPage(tid, dirtypages, rightSiblingId, Permissions.READ_WRITE);
+            p.setLeftSiblingId(rightSiblingId);
+        }
+        page.setRightSiblingId(rightPage.getId());
+        rightPage.setLeftSiblingId(page.getId());
+        rightPage.setRightSiblingId(rightSiblingId);
+        dirtypages.put(page.getId(), page);
+        dirtypages.put(rightPage.getId(), rightPage);
+
+        // 4. 插入key到父节点
+        Field key = tupleIterator.next().getField(keyField);
+        BTreeInternalPage parent = getParentWithEmptySlots(tid, dirtypages, page.getParentId(), key);
+        parent.insertEntry(new BTreeEntry(key, page.getId(), rightPage.getId()));
+        dirtypages.put(parent.getId(), parent);
+
+        // 5. update parent pointer
+         updateParentPointer(tid, dirtypages, parent.getId(), rightPage.getId());
+
+        // 6. 返回要插入的 page
+        return field.compare(Op.LESS_THAN_OR_EQ, key) ? page : rightPage;
 
     }
 
@@ -275,7 +313,8 @@ public class BTreeFile implements DbFile {
      * @see #getParentWithEmptySlots(TransactionId, Map, BTreePageId, Field)
      * @see #updateParentPointers(TransactionId, Map, BTreeInternalPage)
      */
-    public BTreeInternalPage splitInternalPage(TransactionId tid, Map<PageId, Page> dirtypages,
+    public BTreeInternalPage splitInternalPage(TransactionId tid,
+                                               Map<PageId, Page> dirtypages,
                                                BTreeInternalPage page, Field field)
             throws DbException, IOException, TransactionAbortedException {
         // some code goes here
@@ -287,7 +326,40 @@ public class BTreeFile implements DbFile {
         // the parent pointers of all the children moving to the new page.  updateParentPointers()
         // will be useful here.  Return the page into which an entry with the given key field
         // should be inserted.
-        return null;
+
+        // 1. 新建 internal page
+        BTreeInternalPage rightPage = (BTreeInternalPage) getEmptyPage(tid, dirtypages, BTreePageId.INTERNAL);
+
+        // 2. 复制并删除元素
+        int numTuples = page.getNumEntries();
+        int moved = numTuples / 2;
+        Iterator<BTreeEntry> iterator = page.reverseIterator();
+        while (iterator.hasNext()) {
+            BTreeEntry entry = iterator.next();
+            page.deleteKeyAndRightChild(entry);
+            rightPage.insertEntry(entry);
+            if (--moved == 0) {
+                break;
+            }
+        }
+        // 3. 取出 mid key
+        BTreeEntry next = iterator.next();
+        page.deleteKeyAndRightChild(next);
+        next.setLeftChild(page.getId());
+        next.setRightChild(rightPage.getId());
+
+        // 4. 更新 parent point
+        updateParentPointers(tid, dirtypages, rightPage);
+        dirtypages.put(page.getId(), page);
+        dirtypages.put(rightPage.getId(), rightPage);
+
+        // 5. 插入 key
+        BTreeInternalPage parent = getParentWithEmptySlots(tid, dirtypages, page.getParentId(), next.getKey());
+        parent.insertEntry(next);
+        dirtypages.put(parent.getId(), parent);
+
+        // 6. 返回要插入的 page
+        return field.compare(Op.LESS_THAN_OR_EQ, next.getKey()) ? page : rightPage;
     }
 
     /**
