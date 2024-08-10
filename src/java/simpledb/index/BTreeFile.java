@@ -853,7 +853,7 @@ public class BTreeFile implements DbFile {
         leftPage.setRightSiblingId(rightSiblingId);
         if (rightSiblingId != null) {
             BTreeLeafPage page = (BTreeLeafPage) getPage(tid, dirtypages, rightPage.getRightSiblingId(), Permissions.READ_WRITE);
-            page.setLeftSiblingId(leftPage.getLeftSiblingId());
+            page.setLeftSiblingId(leftPage.getId());
         }
         setEmptyPage(tid, dirtypages, rightPage.getId().getPageNumber());
         deleteParentEntry(tid, dirtypages, leftPage, parent, parentEntry);
