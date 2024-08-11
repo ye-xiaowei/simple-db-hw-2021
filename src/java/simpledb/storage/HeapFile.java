@@ -138,11 +138,12 @@ public class HeapFile implements DbFile {
         }
         // 没有空位只能，重新写一页了
         HeapPageId pageId = new HeapPageId(getId(), numPages);
+        HeapPage newPage = new HeapPage(pageId, HeapPage.createEmptyPageData());
+        writePage(newPage);
+
         HeapPage page = getPageFromPool(tid, pageId, Permissions.READ_WRITE);
         page.insertTuple(t);
         page.markDirty(true, tid);
-        t.setRecordId(new RecordId(pageId, 0));
-        writePage(page);
         return List.of(page);
     }
 
@@ -157,9 +158,11 @@ public class HeapFile implements DbFile {
         // some code goes here
         // not necessary for lab1
         HeapPage page = getPageFromPool(tid, t.getRecordId().getPageId(), Permissions.READ_WRITE);
-        page.deleteTuple(t);
-        page.markDirty(true, tid);
-        return List.of(page);
+        if (page != null && page.isSlotUsed(t.getRecordId().getTupleNumber())) {
+            page.deleteTuple(t);
+            return List.of(page);
+        }
+        return List.of();
     }
 
     // see DbFile.java for javadocs
