@@ -275,6 +275,11 @@ public class BufferPool {
 
     private synchronized void flushPage(Page page) throws IOException {
         if (page.isDirty() != null) {
+            LogFile logFile = Database.getLogFile();
+            logFile.logWrite(page.isDirty(), page.getBeforeImage(), page);
+            logFile.force();
+            page.setBeforeImage();
+
             DbFile dbFile = Database.getCatalog().getDatabaseFile(page.getId().getTableId());
             dbFile.writePage(page);
             page.markDirty(false, null);

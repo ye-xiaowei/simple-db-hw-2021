@@ -84,12 +84,12 @@ public class HeapFile implements DbFile {
         if (!Objects.equals(getId(), pid.getTableId())) {
             throw new IllegalArgumentException("Page does not exist in this file.");
         }
-        try (RandomAccessFile read = new RandomAccessFile(file, "r")) {
+        try (RandomAccessFile f = new RandomAccessFile(file, "r")) {
             int pageSize = BufferPool.getPageSize();
             byte[] data = new byte[pageSize];
             int off = pid.getPageNumber() * pageSize;
-            read.seek(off);
-            read.read(data);
+            f.seek(off);
+            f.read(data);
             return new HeapPage((HeapPageId) pid, data);
         } catch (Exception e) {
             throw new RuntimeException(e);
@@ -103,11 +103,11 @@ public class HeapFile implements DbFile {
         if (!Objects.equals(getId(), page.getId().getTableId())) {
             throw new IllegalArgumentException("Page does not exist in this file.");
         }
-        try (RandomAccessFile read = new RandomAccessFile(file, "rw")) {
+        try (RandomAccessFile f = new RandomAccessFile(file, "rw")) {
             int pageSize = BufferPool.getPageSize();
             int off = page.getId().getPageNumber() * pageSize;
-            read.seek(off);
-            read.write(page.getPageData());
+            f.seek(off);
+            f.write(page.getPageData());
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
